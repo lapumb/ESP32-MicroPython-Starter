@@ -3,6 +3,6 @@
 # Run on boot
 import esp, led, wifi
 esp.osdebug(5)
-wifi.connect('MOTOE768', 'n43mf006rh')
 white_led = led.Led(25, 0)
 white_led = white_led.toggle(1500)
+wifi.connect('ssid', 'password')

@@ -1,1 +1,1 @@
-export ESPPORT=/dev/cu.usbserial-14430
+export ESPPORT=/dev/cu.usbserial-14330

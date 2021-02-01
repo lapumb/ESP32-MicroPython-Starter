@@ -1,6 +1,6 @@
 # ESP32 MicroPython Starter Project
 
-This repository contains starter code and scripts to run MicroPython on the Espressif ESP32 board.
+This repository contains scripts to use MicroPython on the ESP32, along with a small example project that toggles an LED (GPIO25) and listens to the `INPUT` value from a switch (GPIO15) for 15s before entering a `Read Evaluate Print Loop` ("REPL": an interative MicroPython prompt).
 
 <!-- toc -->
 
@@ -13,7 +13,7 @@ This repository contains starter code and scripts to run MicroPython on the Espr
 
 # Directory Structure
 
-* `code`: Contains source code (.py) files and scripts to upload the python modules and open a Read Evaluate Print Loop ("REPL": an interative MicroPython prompt)
+* `code`: Contains source code (.py) files, a script to upload the python modules in `/py`, and a script to open a serial connection to interact with the ESP32.
 * `MicroPython`: Contains scripts to download and flash MicroPython onto the ESP32
 * `tools`: Contains helper scripts
 
@@ -75,7 +75,7 @@ Execute the following to download and flash the latest stable ESP32 MicroPython 
 ```bash
 cd ESP32-MicroPython-Starter
 ./MicroPython/download_esp_micropython.sh
-./flash_micropython.sh
+./MicroPython/flash_micropython.sh
 ```
 
 ### Flash Starter-Project Code
@@ -83,32 +83,34 @@ cd ESP32-MicroPython-Starter
 The starter project contains logic to connect to wifi (`wifi.py`) and toggle an LED on / off on a timer (`led.py`).
 
 ```bash
-cd ESP32-MicroPython-Starter/code
+cd code
 
 # upload all Python modules to the board
 ./upload_py_modules.sh
 
-# open an REPL
-./open_repl.sh
+# connect to the ESP32
+./connect_to_board.sh
 ```
 
-Once the REPL is opened, press `enter` and you should see:
+Once the script is finished running, one of two things will happen:
 
-```
->>>
-```
+1. You will see a blank screen. If this is the case, press `enter` to open the Python prompt (you should see `>>>`)
+2. You will see output from the currently-running program
 
-Note: Opening the REPL does not reboot the board. To reboot the board, press the `EN` button on the ESP32.
+Note: Connecting to the board does not reboot the board. To reboot the board, press the `EN` button on the ESP32. When the board reboots, `boot.py` will be run, followed by `main.py`.
 
-To kill the REPL, press `control+a` then `k`.
+To kill the connection, press `control+a` then `k`, then `y` to confirm killing the prompt.
 
 # Special Notes
 
-- `boot.py`: This file is executed on every reboot
-- The REPL is entered using the `screen` command
-- `ampy` is used to upload Python source files to the ESP32
+- `boot.py`: This file is executed on every boot
+- `main.py`: This file is executed _after_ `boot.py` on every boot
+- The connection is made using the `screen` command. See [Helpful Links](#helpful-links) for help using `screen`
+- `ampy` is used to upload Python source files to the ESP32.
+>Note: `ampy` can also be used to remove files, list files, etcetera. Execute `ampy --help` for further information.
 
 # Helpful Links
 
 - [Official MicroPython ESP32 Docs](https://docs.micropython.org/en/latest/esp32/general.html)
+- [MicroPython Libraries Documentation](https://docs.micropython.org/en/latest/library/index.html)
 - [Help with `screen` Command](http://www.kinnetica.com/2011/05/29/using-screen-on-mac-os-x/#:~:text=Type%20Ctrl%2Da%20d%20to,back%20to%20your%20standard%20terminal.)

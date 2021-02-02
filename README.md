@@ -30,7 +30,7 @@ brew install wget
 ### Clone repo
 
 ```sh
-git clone git@github.com:lapumb-spindance/ESP32-MicroPython-Starter.git
+git clone git@github.com:spindance/ESP32-MicroPython-Starter.git
 ```
 
 ### Install required tools, setup environment

@@ -1,0 +1,99 @@
+from components.cloud_aws.aws_iot_client import AWSIoTClient
+import hardware_manager
+
+SHADOW_PROPERTY_TUPLE_GETTER_INDEX = 0
+SHADOW_PROPERTY_TUPLE_DELTA_CB_INDEX = 1
+
+_aws_client: AWSIoTClient = None
+
+def __get_micropython_version() -> str:
+    import os
+
+    # uname is a tuple containing the following:
+    # (sysname="esp32", nodename="esp32", release="1.15.0", version="v1.15 on 2021-04-18", machine="ESP32 module with ESP32")
+    return os.uname()[3]
+
+def __on_red_led_on(property: str, new_led_status: bool) -> None:
+    del property
+    hardware_manager.set_red_led_on(new_led_status)
+
+def __on_green_led_on(property: str, new_led_status: bool) -> None:
+    del property
+    hardware_manager.set_green_led_on(new_led_status)
+
+def __on_blue_led_on(property: str, new_led_status: bool) -> None:
+    del property
+    hardware_manager.set_blue_led_on(new_led_status)
+
+#    property name          value "get" function       delta callback function
+# signature:                returns Any                cb(delta_property: str, delta_value: Any) -> Any
+_shadow_properties = {
+    "micropython_version": (__get_micropython_version,             None),
+    "switch_status":       (hardware_manager.get_switch_status,    None),
+    "white_led_on":        (hardware_manager.get_white_led_on,     None),
+    "red_led_on":          (hardware_manager.get_red_led_on,       __on_red_led_on),
+    "green_led_on":        (hardware_manager.get_green_led_on,     __on_green_led_on),
+    "blue_led_on":         (hardware_manager.get_blue_led_on,      __on_blue_led_on)
+}
+
+def __on_bulb(topic_name: str, payload: str) -> None:
+    del topic_name
+    print("__test_subscription_cb received: {}".format(payload))
+
+def __on_shadow_delta(delta_dict: dict) -> None:
+    # walk through delta dictionary
+    for delta_property, delta_value in delta_dict.items():
+        # if delta property (key) is a shadow property
+        if delta_property in _shadow_properties:
+            # get the callback function
+            delta_callback = _shadow_properties[delta_property][SHADOW_PROPERTY_TUPLE_DELTA_CB_INDEX]
+            # if the callback is not None, call it
+            if delta_callback is not None:
+                delta_callback(delta_property, delta_value)
+                shadow_update()
+            else:
+                print("delta property is not settable!")
+
+async def __shadow_update_task(frequency_ms: int) -> None:
+    assert frequency_ms > 60000
+
+    import uasyncio
+    while True:
+        shadow_update()
+        await uasyncio.sleep_ms(frequency_ms)
+
+def init(client_id: str, host_name: str, cert_file_path: str, key_file_path: str, shadow_update_frequency: int=120000) -> None:
+    assert client_id != ""
+    assert host_name != ""
+    assert cert_file_path != ""
+    assert key_file_path != ""
+
+    try:
+        global _aws_client
+        _aws_client = AWSIoTClient(client_id, host_name, cert_file_path, key_file_path)
+        _aws_client.subscribe("$aws/things/blakes_micropython_esp32/bulb", __on_bulb)
+        _aws_client.set_shadow_delta_callback(__on_shadow_delta)
+    except Exception as error:
+        print("Failed to initialize AWS IoT Client: " + str(error))
+        raise
+
+    import uasyncio
+    uasyncio.create_task(_aws_client.task_start())
+    uasyncio.create_task(__shadow_update_task(shadow_update_frequency))
+
+def shadow_update() -> None:
+    shadow_property_dict = dict()
+    for property, tuple_callbacks in _shadow_properties.items():
+        property_val = None
+        property_getter = tuple_callbacks[SHADOW_PROPERTY_TUPLE_GETTER_INDEX]
+        if property_getter is not None:
+            property_val = property_getter()
+            shadow_property_dict[str(property)] = property_val
+
+    _aws_client.update_shadow(shadow_property_dict)
+
+def publish_telemetry(topic_name: str, json_payload: str) -> None:
+    assert topic_name is not None
+    assert json_payload is not None
+
+    _aws_client.publish(topic_name, json_payload)

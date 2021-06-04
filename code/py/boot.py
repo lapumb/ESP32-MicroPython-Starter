@@ -1,16 +1,20 @@
 # This file is executed on every boot (including wake-boot from deep sleep)
 
-def led_test():
-    from led import Led
-    white_led = Led(25, 0)
-    white_led = white_led.toggle(1500)
+def __start_wifi() -> None:
+    import components.wifi.wifi as wifi
+    wifi.connect("___ssid___", "___password___")
 
-def boot():
-    import esp, wifi
-    print('Running boot.py..')
-    esp.osdebug(5)
-    # led_test()
-    # Pass your wifi SSID and passphrase to connect to wifi
-    wifi.connect('MOTOE768', 'n43mf006rh')
+def boot() -> None:
+    import utils
+    utils.print_heap_usage_raw()
+    __start_wifi()
 
-boot()
+if __name__ == "__main__":
+    print("Running boot.py..")
+
+    try:
+        boot()
+    except KeyboardInterrupt:
+        print("Killing program..")
+        import sys
+        sys.exit(0)

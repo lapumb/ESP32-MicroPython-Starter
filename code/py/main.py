@@ -1,20 +1,33 @@
 # This file is executed on every boot (including wake-boot from deepsleep) AFTER boot.py (if applicable)
 
-# listen for input from a switch (GPIO 15) for 15 seconds
-def switch_test():
-    from switch import Switch
-    switch_in = Switch(15)
-    switch_in.listen(15000, 250)
+async def __print_heap_usage_task() -> None:
+    import utils, uasyncio
 
-# print heap usage
-def print_heap_usage():
-    import gc
-    print('Free Heap: {}, Allocated Heap: {}'.format(gc.mem_free(), gc.mem_alloc()))
-    # could also use: import micropython; micropython.mem_info()
+    # print heap usage every five seconds
+    while True:
+        utils.print_heap_usage()
+        await uasyncio.sleep_ms(5000)
 
-def main():
-    print('Running main.py..')
-    print_heap_usage()
-    # switch_test()
+def main() -> None:
+    import uasyncio, aws_client_manager, board_def, hardware_manager
 
-main()
+    main_loop = uasyncio.get_event_loop()
+
+    hardware_manager.init(board_def.SWITCH_GPIO_NUM, board_def.WHITE_LED_GPIO_NUM, board_def.RED_LED_GPIO_NUM, board_def.GREEN_LED_GPIO_NUM, board_def.BLUE_LED_GPIO_NUM)
+    aws_client_manager.init("blakes_micropython_esp32", "___server___", "aws_config/cert.pem", "aws_config/private.key")
+    uasyncio.create_task(__print_heap_usage_task())
+
+    try:
+        main_loop.run_forever()
+    finally:
+        main_loop.close()
+
+if __name__ == "__main__":
+    print("Running main.py..")
+
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("Killing program..")
+        import sys
+        sys.exit(0)

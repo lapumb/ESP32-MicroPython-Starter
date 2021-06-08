@@ -17,7 +17,7 @@ def init(switch_gpio_num: int, white_led_gpio_num: int, red_led_gpio_num: int, g
 
     switch_status: str =_switch.get_switch_status()
     _white_led = Led(white_led_gpio_num, initial_level=1 if switch_status == "on" else 0)
-    
+
     _red_led = Led(red_led_gpio_num, initial_level=1)
     _green_led = Led(green_led_gpio_num, initial_level=1)
     _blue_led = Led(blue_led_gpio_num, initial_level=1)

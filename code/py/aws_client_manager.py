@@ -1,17 +1,10 @@
 from components.cloud_aws.aws_iot_client import AWSIoTClient
-import hardware_manager
+import hardware_manager, utils
 
-SHADOW_PROPERTY_TUPLE_GETTER_INDEX = 0
-SHADOW_PROPERTY_TUPLE_DELTA_CB_INDEX = 1
+SHADOW_PROPERTY_TUPLE_GETTER_INDEX: int = 0
+SHADOW_PROPERTY_TUPLE_DELTA_CB_INDEX: int = 1
 
 _aws_client: AWSIoTClient = None
-
-def __get_micropython_version() -> str:
-    import os
-
-    # uname is a tuple containing the following:
-    # (sysname="esp32", nodename="esp32", release="1.15.0", version="v1.15 on 2021-04-18", machine="ESP32 module with ESP32")
-    return os.uname()[3]
 
 def __on_red_led_on(property: str, new_led_status: bool) -> None:
     del property
@@ -28,7 +21,7 @@ def __on_blue_led_on(property: str, new_led_status: bool) -> None:
 #    property name          value "get" function       delta callback function
 # signature:                returns Any                cb(delta_property: str, delta_value: Any) -> Any
 _shadow_properties = {
-    "micropython_version": (__get_micropython_version,             None),
+    "micropython_version": (utils.get_micropython_version,         None),
     "switch_status":       (hardware_manager.get_switch_status,    None),
     "white_led_on":        (hardware_manager.get_white_led_on,     None),
     "red_led_on":          (hardware_manager.get_red_led_on,       __on_red_led_on),
@@ -78,13 +71,12 @@ def init(client_id: str, host_name: str, cert_file_path: str, key_file_path: str
         raise
 
     import uasyncio
-    uasyncio.create_task(_aws_client.task_start())
+    uasyncio.create_task(_aws_client.listen_for_incoming_messages_task())
     uasyncio.create_task(__shadow_update_task(shadow_update_frequency))
 
 def shadow_update() -> None:
     shadow_property_dict = dict()
     for property, tuple_callbacks in _shadow_properties.items():
-        property_val = None
         property_getter = tuple_callbacks[SHADOW_PROPERTY_TUPLE_GETTER_INDEX]
         if property_getter is not None:
             property_val = property_getter()

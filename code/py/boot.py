@@ -2,7 +2,7 @@
 
 def __start_wifi() -> None:
     import components.wifi.wifi as wifi
-    wifi.connect("___ssid___", "___password___")
+    wifi.connect("", "")
 
 def boot() -> None:
     import utils

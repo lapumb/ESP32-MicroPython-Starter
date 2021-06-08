@@ -14,7 +14,7 @@ def main() -> None:
     main_loop = uasyncio.get_event_loop()
 
     hardware_manager.init(board_def.SWITCH_GPIO_NUM, board_def.WHITE_LED_GPIO_NUM, board_def.RED_LED_GPIO_NUM, board_def.GREEN_LED_GPIO_NUM, board_def.BLUE_LED_GPIO_NUM)
-    aws_client_manager.init("blakes_micropython_esp32", "___server___", "aws_config/cert.pem", "aws_config/private.key")
+    aws_client_manager.init("blakes_micropython_esp32", "", "aws_config/cert.pem", "aws_config/private.key")
     uasyncio.create_task(__print_heap_usage_task())
 
     try:

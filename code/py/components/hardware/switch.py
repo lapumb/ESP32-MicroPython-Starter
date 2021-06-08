@@ -3,9 +3,9 @@ import uasyncio
 from machine import Pin
 
 class Switch:
-    ON = "on"
-    OFF = "off"
-    UNKNOWN = "unknown"
+    ON: str = "on"
+    OFF: str = "off"
+    UNKNOWN: str = "unknown"
 
     gpio_num: int = 0
     pin_is_initialized: bool = False
@@ -34,7 +34,7 @@ class Switch:
 
         return self.ON if self.switch_input_pin.value() == 1 else self.OFF
 
-    async def poll(self, gpio_value_change_cb, delay_ms: int=50) -> None:
+    async def poll(self, gpio_value_change_cb: function, delay_ms: int=50) -> None:
         assert gpio_value_change_cb is not None
 
         if not self.pin_is_initialized:

@@ -2,6 +2,7 @@
 
 import ujson
 import uasyncio
+# from queue import Queue
 try:
     from umqtt.robust import MQTTClient
 except ImportError:
@@ -12,19 +13,21 @@ except ImportError:
 
 class AWSIoTClient:
 
-    MQTT_PORT = 8883
+    MQTT_PORT: int = 8883
 
-    cert = ""
-    key = ""
-    client_id = ""
+    cert: str = ""
+    key: str = ""
+    client_id: str = ""
 
-    mqtt_client = None
-    mqtt_client_is_connected = False
+    mqtt_client: MQTTClient = None
+    mqtt_client_is_connected: bool = False
 
-    shadow_delta_cb = None
+    shadow_delta_cb: function = None
 
     # a dictionary of AWS MQTT subscriptions: <"topic_name", on_topic_cb>
-    subscriptions = dict()
+    subscriptions: dict = dict()
+
+    # telemetry_queue: Queue = Queue(maxsize=10)
 
     def __byte_array_to_string(self, byte_arr: bytearray) -> str:
         return byte_arr.decode("utf-8")
@@ -116,7 +119,7 @@ class AWSIoTClient:
         """Disconnect the MQTT client"""
         self.mqtt_client.disconnect()
 
-    def subscribe(self, topic_name: str, callback) -> None:
+    def subscribe(self, topic_name: str, callback: function) -> None:
         """Subscribe to an MQTT topic.
         Parameters
         ----------
@@ -154,7 +157,7 @@ class AWSIoTClient:
             raise
 
     def update_shadow(self, properties: dict) -> None:
-        assert properties is not None or len(properties) == 0
+        assert properties is not None and len(properties) != 0
 
         shadow_update_topic = "{}/update".format(self.__get_shadow_prefix_str())
 
@@ -165,7 +168,7 @@ class AWSIoTClient:
         shadow_state_doc_str = ujson.dumps(shadow_state_doc_json)
         self.publish(shadow_update_topic, shadow_state_doc_str)
 
-    def set_shadow_delta_callback(self, on_shadow_delta_cb) -> None:
+    def set_shadow_delta_callback(self, on_shadow_delta_cb: function) -> None:
         """Set the callback to be called whenever a payload is received at $aws/things/{THING_NAME}/shadow/update/delta.
         Parameters
         ----------
@@ -178,7 +181,7 @@ class AWSIoTClient:
         assert on_shadow_delta_cb is not None
         self.shadow_delta_cb = on_shadow_delta_cb
 
-    async def task_start(self) -> None:
+    async def listen_for_incoming_messages_task(self) -> None:
         """Start listening for incoming AWS IoT MQTT messages
         Note: this function listens for incoming messages asyncronously using uasyncio
             ```

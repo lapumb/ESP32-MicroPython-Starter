@@ -25,6 +25,7 @@ Recommended to use a POSIX-like environment (MacOS, Linux, or Git-Bash for Windo
 
 ```sh
 brew install wget
+brew install picocom
 ```
 
 ### Clone repo

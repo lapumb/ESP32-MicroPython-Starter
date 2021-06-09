@@ -13,6 +13,7 @@ class SimpleQueue:
     def enqueue(self, data) -> None:
         assert data is not None
         if self.current_number_of_elements() >= self.max_size:
+            print("Queue (size: {}) is full, removing oldest element..".format(self.max_size))
             self.queue.pop(0)
 
         self.queue.append(data)

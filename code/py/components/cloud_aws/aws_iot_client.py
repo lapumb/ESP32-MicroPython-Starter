@@ -2,7 +2,8 @@
 
 import ujson
 import uasyncio
-# from queue import Queue
+from ..simple_queue.simple_queue import SimpleQueue
+from .priv.aws_jobs import AWSJobsClient
 try:
     from umqtt.robust import MQTTClient
 except ImportError:
@@ -22,12 +23,14 @@ class AWSIoTClient:
     mqtt_client: MQTTClient = None
     mqtt_client_is_connected: bool = False
 
+    aws_jobs_client: AWSJobsClient = None
+
     shadow_delta_cb: function = None
 
     # a dictionary of AWS MQTT subscriptions: <"topic_name", on_topic_cb>
     subscriptions: dict = dict()
 
-    # telemetry_queue: Queue = Queue(maxsize=10)
+    telemetry_queue: SimpleQueue = SimpleQueue(10)
 
     def __byte_array_to_string(self, byte_arr: bytearray) -> str:
         return byte_arr.decode("utf-8")
@@ -45,6 +48,28 @@ class AWSIoTClient:
                 callback(topic_name_str, payload_str)
         except Exception as error:
             print("An error occured upon receiving subscription payload: " + str(error))
+
+    def __publish(self, topic_name: str, json_payload: str) -> None:
+        if not self.mqtt_client_is_connected:
+            print("Cannot publish telemetry, AWS is not connected")
+            return
+
+        print("publishing to " + topic_name + ": " + json_payload)
+
+        try:
+            self.mqtt_client.publish(topic_name, json_payload)
+        except Exception as error:
+            print("Failed to publish telemetry message: " + str(error))
+            raise
+
+    def __publish_queued_messages(self) -> None:
+        # index 0 = topic name, index 1 = json str payload
+        telemetry_data = self.telemetry_queue.dequeue()
+        while telemetry_data is not None:
+            self.__publish(telemetry_data[0], telemetry_data[1])
+
+            # get the next message
+            telemetry_data = self.telemetry_queue.dequeue()
 
     def __setup_subscriptions(self) -> None:
         # see warnings about subscriptions here: https://github.com/micropython/micropython-lib/blob/master/micropython/umqtt.robust/example_sub_robust.py
@@ -115,6 +140,8 @@ class AWSIoTClient:
 
         self.__subscribe_to_shadow_topics()
 
+        self.aws_jobs_client = AWSJobsClient(self)
+
     def disconnect(self) -> None:
         """Disconnect the MQTT client"""
         self.mqtt_client.disconnect()
@@ -144,17 +171,8 @@ class AWSIoTClient:
             raise
 
     def publish(self, topic_name: str, json_payload: str) -> None:
-        if not self.mqtt_client_is_connected:
-            print("Cannot publish telemetry, AWS is not connected")
-            return
-
-        print("publishing to " + topic_name + ": " + json_payload)
-
-        try:
-            self.mqtt_client.publish(topic_name, json_payload)
-        except Exception as error:
-            print("Failed to publish telemetry message: " + str(error))
-            raise
+        assert topic_name != "" and json_payload != ""
+        self.telemetry_queue.enqueue((topic_name, json_payload))
 
     def update_shadow(self, properties: dict) -> None:
         assert properties is not None and len(properties) != 0
@@ -181,23 +199,36 @@ class AWSIoTClient:
         assert on_shadow_delta_cb is not None
         self.shadow_delta_cb = on_shadow_delta_cb
 
-    async def listen_for_incoming_messages_task(self) -> None:
-        """Start listening for incoming AWS IoT MQTT messages
-        Note: this function listens for incoming messages asyncronously using uasyncio
-            ```
-            Usage:
-                import uasyncio
+    # async def listen_for_incoming_messages_task(self) -> None:
+    #     """Start listening for incoming AWS IoT MQTT messages
+    #     Note: this function listens for incoming messages asyncronously using uasyncio
+    #         ```
+    #         Usage:
+    #             import uasyncio
 
-                # Get loop
-                main_loop = uasyncio.get_event_loop()
+    #             # Get loop
+    #             main_loop = uasyncio.get_event_loop()
 
-                # Create task
-                uasyncio.create_task(aws_iot_client.start())
+    #             # Create task
+    #             uasyncio.create_task(aws_iot_client.start())
 
-                # Start the loop
-                main_loop.run_forever()
-            ```
-        """
+    #             # Start the loop
+    #             main_loop.run_forever()
+    #         ```
+    #     """
+    #     while True:
+    #         self.mqtt_client.check_msg()
+    #         await uasyncio.sleep_ms(500)
+
+    async def start_task(self) -> None:
+        from ..wifi import wifi
+        assert wifi.is_connected()
+
         while True:
+            # publish queued telemetry messages
+            self.__publish_queued_messages()
+
+            # check for any incoming mesages
             self.mqtt_client.check_msg()
-            await uasyncio.sleep_ms(500)
+
+            await uasyncio.sleep_ms(100)

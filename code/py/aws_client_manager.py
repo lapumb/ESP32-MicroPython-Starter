@@ -46,6 +46,8 @@ def __on_shadow_delta(delta_dict: dict) -> None:
                 shadow_update()
             else:
                 print("delta property is not settable!")
+        else:
+            print("delta property {} is not a shadow property".format(delta_property))
 
 async def __shadow_update_task(frequency_ms: int) -> None:
     assert frequency_ms > 60000
@@ -71,7 +73,8 @@ def init(client_id: str, host_name: str, cert_file_path: str, key_file_path: str
         raise
 
     import uasyncio
-    uasyncio.create_task(_aws_client.listen_for_incoming_messages_task())
+    # uasyncio.create_task(_aws_client.listen_for_incoming_messages_task())
+    uasyncio.create_task(_aws_client.start_task())
     uasyncio.create_task(__shadow_update_task(shadow_update_frequency))
 
 def shadow_update() -> None:

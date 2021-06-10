@@ -15,6 +15,6 @@ if __name__ == "__main__":
     try:
         boot()
     except KeyboardInterrupt:
-        print("Killing program..")
+        print("Killing boot.py..")
         import sys
         sys.exit(0)

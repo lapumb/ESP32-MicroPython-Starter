@@ -1,28 +1,31 @@
 class SimpleQueue:
 
-    max_size: int = 0
-    queue: list = list()
+    _max_size: int = 0
+    _queue: list = list()
 
     def __init__(self, max_size: int) -> None:
         assert max_size >= 0
-        self.max_size = max_size
+        self._max_size = max_size
 
     def __str__(self) -> str:
-        return str(self.queue)
+        return str(self._queue)
 
     def enqueue(self, data) -> None:
         assert data is not None
-        if self.current_number_of_elements() >= self.max_size:
-            print("Queue (size: {}) is full, removing oldest element..".format(self.max_size))
-            self.queue.pop(0)
+        if self.current_number_of_elements() >= self._max_size:
+            print("Queue (size: {}) is full, removing oldest element..".format(self._max_size))
+            self._queue.pop(0)
 
-        self.queue.append(data)
+        self._queue.append(data)
 
     def dequeue(self):
         if self.current_number_of_elements() == 0:
             return None
 
-        return self.queue.pop(0)
+        return self._queue.pop(0)
 
     def current_number_of_elements(self) -> int:
-        return len(self.queue)
+        return len(self._queue)
+
+    def get_max_number_of_elements(self) -> int:
+        return self._max_size

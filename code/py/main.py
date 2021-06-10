@@ -28,6 +28,6 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("Killing program..")
+        print("Killing main.py..")
         import sys
         sys.exit(0)

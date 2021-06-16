@@ -2,10 +2,10 @@ from ..aws_iot_client import *
 from ..aws_job_execution_status import *
 
 # a dictionary of operation subscriptions: <"operation", on_operation_cb>,
-# where on_operation_cb has the following signature: on_operation_cb(job_id: str, job_document: dict) - > (AWS_JOB_EXECUTION_*: int, status_str: str)
+# where on_operation_cb has the following signature: on_operation_cb(job_id: str, job_document: dict) -> (AWS_JOB_EXECUTION_*: int, status_str: str)
 _operation_subscriptions: dict = dict()
 
-# status string and status detail string dictionary: <aws_job_execution_status: int, ("statusDetail", "STATUS")
+# status string and status detail string dictionary: <aws_job_execution_status: int, ("statusDetail", "STATUS"): tuple>
 _job_status_defs: dict = {
     AWS_JOB_EXECUTION_IN_PROGRESS: ("inProgressDetail", "IN_PROGRESS"),
     AWS_JOB_EXECUTION_FAILED: ("failDetail", "FAILED"),
@@ -29,22 +29,18 @@ def __aws_job_execution_to_str(aws_job_execution_status: int) -> str:
         return _job_status_defs[aws_job_execution_status][1]
     return "UNKNOWN"
 
-def __on_jobs_notify(topic_name: str, payload: str) -> None:
+def __on_jobs_notify(topic_name: str, json_payload: dict) -> None:
     del topic_name
-    print("on_jobs_notify: {}".format(payload))
+    print("on_jobs_notify: {}".format(str(json_payload)))
     get_next_job()
 
-def __on_jobs_get_next_accepted(topic_name: str, payload: str) -> None:
-    import ujson
+def __on_jobs_get_next_accepted(topic_name: str, json_payload: dict) -> None:
     del topic_name
-
-    # convert payload string to a JSON object
-    payload_json: dict = ujson.loads(payload)
 
     # try to get the execution. If it fails, return (we can't update the job without the job id)
     try:
         # Get the "execution" object. If it doesn"t exist, then there is no job to process
-        execution: dict = payload_json["execution"]
+        execution: dict = json_payload["execution"]
     except Exception as error:
         return
 
@@ -65,7 +61,7 @@ def __on_jobs_get_next_accepted(topic_name: str, payload: str) -> None:
         # Get the "operation" from the job document
         operation: str = job_document["operation"]
         print("opertaion: {}".format(operation))
-    except Exception:
+    except Exception as error:
         publish_update(job_id, AWS_JOB_EXECUTION_REJECTED, "Failed to parse expected JSON object: {}".format(str(error)))
         return
 
@@ -82,9 +78,9 @@ def __on_jobs_get_next_accepted(topic_name: str, payload: str) -> None:
 
     publish_update(job_id, result_tuple[0], result_tuple[1])
 
-def __on_jobs_get_next_rejected(topic_name: str, payload: str) -> None:
+def __on_jobs_get_next_rejected(topic_name: str, json_payload: dict) -> None:
     del topic_name
-    print("on_jobs_next_get_rejected: {}".format(payload))
+    print("on_jobs_next_get_rejected: {}".format(str(json_payload)))
 
 def init(aws_client: AWSIoTClient) -> None:
     assert aws_client is not None and aws_client != None

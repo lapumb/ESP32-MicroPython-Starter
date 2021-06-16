@@ -27,8 +27,28 @@ class Switch:
         assert self._pin_is_initialized
         return self._switch_input_pin.value()
 
-    async def poll(self, gpio_value_change_cb: function, delay_ms: int=50) -> None:
+    async def poll(self, gpio_value_change_cb: function, delay_ms: int = 50) -> None:
+        """Poll the switch for changes in GPIO level
+
+        Parameters
+        ----------
+        `gpio_value_change_cb` : function
+            Called when a new level is detected on the switch GPIO
+
+            Signature: `on_gpio_change(gpio_num: int, current_gpio_level: int, previous_gpio_level: int) -> None`
+
+            Note: this CANNOT be None
+
+        `delay_ms` : int
+            The number of milliseconds to delay between each GPIO-level check
+
+            Default: 50
+
+            Note: this must be at least 50
+
+        """
         assert gpio_value_change_cb is not None and gpio_value_change_cb != None
+        assert delay_ms >= 50
         assert self._pin_is_initialized
 
         previous_value: int = 0

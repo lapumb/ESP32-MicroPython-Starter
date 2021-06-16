@@ -4,7 +4,7 @@ class SimpleQueue:
     _queue: list = list()
 
     def __init__(self, max_size: int) -> None:
-        assert max_size >= 0
+        assert max_size > 0
         self._max_size = max_size
 
     def __str__(self) -> str:
@@ -18,7 +18,7 @@ class SimpleQueue:
 
         self._queue.append(data)
 
-    def dequeue(self):
+    def dequeue(self) -> Any:
         if self.current_number_of_elements() == 0:
             return None
 

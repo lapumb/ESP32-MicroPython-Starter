@@ -9,12 +9,12 @@ async def __print_heap_usage_task() -> None:
         await uasyncio.sleep_ms(5000)
 
 def main() -> None:
-    import uasyncio, aws_client_manager, board_def, hardware_manager
+    import uasyncio, aws_client_manager, hardware_manager
 
     main_loop = uasyncio.get_event_loop()
 
-    hardware_manager.init(board_def.SWITCH_GPIO_NUM, board_def.WHITE_LED_GPIO_NUM, board_def.RED_LED_GPIO_NUM, board_def.GREEN_LED_GPIO_NUM, board_def.BLUE_LED_GPIO_NUM)
     aws_client_manager.init("blakes_micropython_esp32_2", "a2thrw602myi6-ats.iot.us-east-1.amazonaws.com", "aws_config/cert.pem", "aws_config/private.key")
+    hardware_manager.init()
     uasyncio.create_task(__print_heap_usage_task())
 
     try:

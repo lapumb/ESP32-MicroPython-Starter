@@ -7,27 +7,23 @@ _shadow_delta_cb: function = None
 def __get_shadow_prefix_str(client_id: str) -> str:
     return "$aws/things/{}/shadow".format(client_id)
 
-def __shadow_update_accepted(topic_name: str, payload: str) -> None:
-    del topic_name, payload
+def __shadow_update_accepted(topic_name: str, json_payload: dict) -> None:
+    del topic_name, json_payload
     print("Shadow update accepted")
 
-def __shadow_update_rejected(topic_name: str, payload: str) -> None:
-    del topic_name, payload
+def __shadow_update_rejected(topic_name: str, json_payload: dict) -> None:
+    del topic_name, json_payload
     print("Shadow update rejected")
 
-def __shadow_update_delta(topic_name: str, payload: str) -> None:
+def __shadow_update_delta(topic_name: str, json_payload: dict) -> None:
     del topic_name
-
-    import ujson
 
     if _shadow_delta_cb is None or _shadow_delta_cb == None:
         # shadow delta callback is not defined
         return
 
-    parsed_delta = ujson.loads(payload)
-
     # the payload contains metadata, only pass the "state" object (dict)
-    _shadow_delta_cb(parsed_delta["state"])
+    _shadow_delta_cb(json_payload["state"])
 
 def init(aws_client: AWSIoTClient) -> None:
     assert aws_client is not None and aws_client != None

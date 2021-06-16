@@ -1,6 +1,4 @@
-# TODO: comment explanation of the class and it"s purposes, shortcomings, etc
-
-import uasyncio
+import ujson
 from ..simple_queue.simple_queue import SimpleQueue
 from .priv import aws_jobs
 from .priv import aws_shadow
@@ -28,7 +26,7 @@ class AWSIoTClient:
 
     # a queue of telemetry messages waiting to be sent
     # each message is stored at as a tuple: (topic_name, json_payload_str)
-    _telemetry_queue: SimpleQueue = SimpleQueue(15)
+    _telemetry_queue: SimpleQueue = None
 
     def __byte_array_to_string(self, byte_arr: bytearray) -> str:
         return byte_arr.decode("utf-8")
@@ -36,11 +34,11 @@ class AWSIoTClient:
     def __top_level_subscription_cb(self, topic_name: bytearray, json_payload: bytearray) -> None:
         topic_name_str: str = self.__byte_array_to_string(topic_name)
         json_payload_str: str = self.__byte_array_to_string(json_payload)
+        json_payload_dict: dict = ujson.loads(json_payload_str)
 
         try:
             callback = self._mqtt_subscriptions_dict.get(topic_name_str)
-            if callback is not None:
-                callback(topic_name_str, json_payload_str)
+            callback(topic_name_str, json_payload_dict)
         except Exception as error:
             print("An error occured upon receiving subscription payload: " + str(error))
 
@@ -88,7 +86,7 @@ class AWSIoTClient:
             print("An error occured when connecting to AWS MQTT client: " + str(error))
             raise
 
-    def __init__(self, client_id: str, host_name: str, cert_file_path: str, key_file_path: str) -> None:
+    def __init__(self, client_id: str, host_name: str, cert_file_path: str, key_file_path: str, telemetry_queue_size: int = 15) -> None:
         """Connect to AWS and subscribe to AWS Jobs and Shadow Document topics.
 
         Parameters
@@ -113,6 +111,12 @@ class AWSIoTClient:
 
             Note: this CANNOT be None
 
+        `telemetry_queue_size` : int
+            The size of the telemetry queue. The telemetry queue is appended to whenever `publish` is called. The queued telemetry (MQTT)
+            messages are published as soon as possible.
+
+            Note: this must be at least 2
+
         Exceptions
         ----------
         An exception will be raised if:
@@ -127,6 +131,7 @@ class AWSIoTClient:
         assert host_name != None
         assert cert_file_path != None
         assert key_file_path != None
+        assert telemetry_queue_size >= 2
 
         from ..wifi import wifi
         if not wifi.is_connected():
@@ -138,7 +143,10 @@ class AWSIoTClient:
         print("host_name: " + host_name)
         print("cert_file_path: " + cert_file_path)
         print("key_file_path: " + key_file_path)
+        print("telemetry_queue_size: " + str(telemetry_queue_size))
         print("---------------------------------------")
+
+        self._telemetry_queue = SimpleQueue(telemetry_queue_size)
 
         try:
             with open(cert_file_path, "r") as cert_file:
@@ -187,11 +195,13 @@ class AWSIoTClient:
             The topic name to subscribe to
 
         `callback` : function
-            Called when a payload is received at the subscribed topic_name, where the topic name and payload are passed into the function
+            Called when a payload is received at the subscribed topic_name, where the topic name (string) and json payload (dict) are passed into the function
+
+            Signature: `on_subscription_cb(topic_name: str, json_payload: dict) -> None`
 
             Note: this CANNOT be None
         """
-        assert callback is not None
+        assert callback is not None and callback != None
         if not self._mqtt_client_is_connected:
             print("Cannot subscribe to topic, AWS is not connected")
             return
@@ -244,6 +254,8 @@ class AWSIoTClient:
             Called whenever a payload is received at `$aws/things/{CLIENT_ID}/shadow/update/delta`, where a dictionary
             of "desired" properties are passed into the function
 
+            Signature: `on_shadow_delta(delta_properties: dict) -> None`
+
             Note: this CANNOT be None
         """
         assert on_shadow_delta_cb != None
@@ -260,7 +272,11 @@ class AWSIoTClient:
             Note: this CANNOT be None
 
         `on_operation_cb` : function
-            function called when operation_id matches the "operation" token
+            function called when operation_id matches the "operation" token, where the job ID (str)
+            and job document (dict) are passed
+
+            Signature: `on_operation(job_id: str, job_document: dict) -> tuple`, where the returned tuple contains
+            (AWS_JOB_EXECUTION_*: int, status_str: str)
 
             Note: this CANNOT be None
         """
@@ -298,6 +314,7 @@ class AWSIoTClient:
         main_loop.run_forever()
         ```
         """
+        import uasyncio
         from ..wifi import wifi
         assert wifi.is_connected()
 

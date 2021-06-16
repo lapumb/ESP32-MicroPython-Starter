@@ -2,7 +2,7 @@ from ..aws_iot_client import *
 from ..aws_job_execution_status import *
 
 # a dictionary of operation subscriptions: <"operation", on_operation_cb>,
-# where on_operation_cb has the following signature: on_operation_cb(job_id: str, job_document: dict) -> (AWS_JOB_EXECUTION_*: int, status_str: str)
+# where on_operation_cb has the signature: on_operation_cb(job_id: str, job_document: dict) -> (AWS_JOB_EXECUTION_*: int, status_str: str)
 _operation_subscriptions: dict = dict()
 
 # status string and status detail string dictionary: <aws_job_execution_status: int, ("statusDetail", "STATUS"): tuple>
@@ -91,6 +91,7 @@ def init(aws_client: AWSIoTClient) -> None:
 
 def subscribe_to_jobs_topics() -> None:
     assert _aws_client is not None and _aws_client != None
+    assert _initialized
 
     client_id: str = _aws_client.get_client_id()
     _aws_client.subscribe("{}/notify".format(__get_jobs_prefix_str(client_id)), __on_jobs_notify)
@@ -99,11 +100,13 @@ def subscribe_to_jobs_topics() -> None:
 
 def get_next_job() -> None:
     assert _aws_client is not None and _aws_client != None
+    assert _initialized
     _aws_client.publish("{}/$next/get".format(__get_jobs_prefix_str(_aws_client.get_client_id())), "{}")
 
 def publish_update(job_id: str, job_execution_status: int, status_detail_str: str) -> None:
     assert _aws_client is not None and _aws_client != None
     assert job_id is not None and job_id != None
+    assert _initialized
 
     import ujson
     client_id: str = _aws_client.get_client_id()
@@ -115,6 +118,7 @@ def publish_update(job_id: str, job_execution_status: int, status_detail_str: st
 def register_operation(operation: str, on_operation_cb: function) -> None:
     assert operation is not None and operation != None
     assert on_operation_cb is not None and on_operation_cb != None
+    assert _initialized
 
     if operation in _operation_subscriptions:
         print("Operation {} is already registered!".format(operation))

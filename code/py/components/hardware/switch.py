@@ -28,7 +28,7 @@ class Switch:
         return self._switch_input_pin.value()
 
     async def poll(self, gpio_value_change_cb: function, delay_ms: int = 50) -> None:
-        """Poll the switch for changes in GPIO level
+        """Poll for changes in GPIO level
 
         Parameters
         ----------

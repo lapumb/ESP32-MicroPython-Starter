@@ -34,6 +34,7 @@ def init(aws_client: AWSIoTClient) -> None:
 
 def subscribe_to_shadow_topics() -> None:
     assert _aws_client is not None and _aws_client != None
+    assert _initialized
 
     client_id: str = _aws_client.get_client_id()
     _aws_client.subscribe("{}/update/accepted".format(__get_shadow_prefix_str(client_id)), __shadow_update_accepted)
@@ -43,6 +44,7 @@ def subscribe_to_shadow_topics() -> None:
 def update(properties: dict) -> None:
     assert _aws_client is not None and _aws_client != None
     assert properties is not None and len(properties) != 0
+    assert _initialized
 
     import ujson
 

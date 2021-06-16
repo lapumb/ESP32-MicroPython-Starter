@@ -5,7 +5,7 @@ def __start_wifi() -> None:
     wifi.connect("", "")
 
 def boot() -> None:
-    import utils
+    import components.utils.utils as utils
     utils.print_heap_usage_raw()
     __start_wifi()
 

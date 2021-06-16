@@ -38,14 +38,13 @@ class AWSIoTClient:
 
         try:
             callback = self._mqtt_subscriptions_dict.get(topic_name_str)
-            callback(topic_name_str, json_payload_dict)
+            if callback is not None and callback != None:
+                callback(topic_name_str, json_payload_dict)
         except Exception as error:
-            print("An error occured upon receiving subscription payload: " + str(error))
+            print("Topic {0}: An error occured upon receiving subscription payload: {1}".format(topic_name_str, str(error)))
 
     def __publish(self, topic_name: str, json_payload_str: str) -> None:
-        if not self._mqtt_client_is_connected:
-            print("Cannot publish telemetry, AWS is not connected")
-            return
+        assert self._mqtt_client_is_connected
 
         print("publishing to " + topic_name + ": " + json_payload_str)
 
@@ -66,7 +65,7 @@ class AWSIoTClient:
             telemetry_data = self._telemetry_queue.dequeue()
 
     def __setup_subscriptions(self, mqtt_client: MQTTClient) -> None:
-        assert mqtt_client is not None
+        assert mqtt_client is not None and mqtt_client != None
 
         # see warnings about subscriptions here: https://github.com/micropython/micropython-lib/blob/master/micropython/umqtt.robust/example_sub_robust.py
         try:
@@ -115,6 +114,8 @@ class AWSIoTClient:
             The size of the telemetry queue. The telemetry queue is appended to whenever `publish` is called. The queued telemetry (MQTT)
             messages are published as soon as possible.
 
+            Default: 15
+
             Note: this must be at least 2
 
         Exceptions
@@ -127,11 +128,11 @@ class AWSIoTClient:
 
         3. An MQTT connection cannot be established
         """
-        assert client_id != None
-        assert host_name != None
-        assert cert_file_path != None
-        assert key_file_path != None
-        assert telemetry_queue_size >= 2
+        assert client_id is not None and client_id != None
+        assert host_name is not None and host_name != None
+        assert cert_file_path is not None and cert_file_path != None
+        assert key_file_path is not None and key_file_path != None
+        assert telemetry_queue_size is not None and telemetry_queue_size >= 2
 
         from ..wifi import wifi
         if not wifi.is_connected():
@@ -194,6 +195,8 @@ class AWSIoTClient:
         `topic_name` : str
             The topic name to subscribe to
 
+            Note: this CANNOT be None
+
         `callback` : function
             Called when a payload is received at the subscribed topic_name, where the topic name (string) and json payload (dict) are passed into the function
 
@@ -201,10 +204,9 @@ class AWSIoTClient:
 
             Note: this CANNOT be None
         """
+        assert topic_name is not None and topic_name != None
         assert callback is not None and callback != None
-        if not self._mqtt_client_is_connected:
-            print("Cannot subscribe to topic, AWS is not connected")
-            return
+        assert self._mqtt_client_is_connected
 
         try:
             self._mqtt_client.subscribe(topic_name)
@@ -229,7 +231,8 @@ class AWSIoTClient:
 
             Note: this CANNOT be None
         """
-        assert topic_name != None and json_payload_str != None
+        assert topic_name is not None and topic_name != None
+        assert json_payload_str is not None and json_payload_str != None
         self._telemetry_queue.enqueue((topic_name, json_payload_str))
 
     def update_shadow(self, properties: dict) -> None:
@@ -242,7 +245,6 @@ class AWSIoTClient:
 
             Note: this CANNOT be None
         """
-        assert properties != None
         aws_shadow.update(properties)
 
     def set_shadow_delta_callback(self, on_shadow_delta_cb: function) -> None:
@@ -258,7 +260,6 @@ class AWSIoTClient:
 
             Note: this CANNOT be None
         """
-        assert on_shadow_delta_cb != None
         aws_shadow.set_delta_callback(on_shadow_delta_cb)
 
     def aws_jobs_register_operation(self, operation_id: str, on_operation_cb: function) -> None:
@@ -298,7 +299,7 @@ class AWSIoTClient:
         `status_detail_str` : str
             Details about the job execution status (i.e., "Job completed successfully!")
         """
-        assert job_id != None
+        assert job_id is not None and job_id != None
         aws_jobs.publish_update(job_id, job_execution_status, status_detail_str)
 
     async def aws_task(self) -> None:

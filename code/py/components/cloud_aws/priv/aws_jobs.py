@@ -93,7 +93,7 @@ def subscribe_to_jobs_topics() -> None:
     assert _aws_client is not None and _aws_client != None
     assert _initialized
 
-    client_id: str = _aws_client.get_client_id()
+    client_id: str = _aws_client.get_thing_name()
     _aws_client.subscribe("{}/notify".format(__get_jobs_prefix_str(client_id)), __on_jobs_notify)
     _aws_client.subscribe("{}/$next/get/accepted".format(__get_jobs_prefix_str(client_id)), __on_jobs_get_next_accepted)
     _aws_client.subscribe("{}/$next/get/rejected".format(__get_jobs_prefix_str(client_id)), __on_jobs_get_next_rejected)
@@ -101,7 +101,7 @@ def subscribe_to_jobs_topics() -> None:
 def get_next_job() -> None:
     assert _aws_client is not None and _aws_client != None
     assert _initialized
-    _aws_client.publish("{}/$next/get".format(__get_jobs_prefix_str(_aws_client.get_client_id())), "{}")
+    _aws_client.publish("{}/$next/get".format(__get_jobs_prefix_str(_aws_client.get_thing_name())), "{}")
 
 def publish_update(job_id: str, job_execution_status: int, status_detail_str: str) -> None:
     assert _aws_client is not None and _aws_client != None
@@ -109,7 +109,7 @@ def publish_update(job_id: str, job_execution_status: int, status_detail_str: st
     assert _initialized
 
     import ujson
-    client_id: str = _aws_client.get_client_id()
+    client_id: str = _aws_client.get_thing_name()
     job_topic: str = "$aws/things/{0}/jobs/{1}/update".format(client_id, job_id)
     job_update_json = {"status": __aws_job_execution_to_str(job_execution_status), "statusDetails": {__aws_job_execution_status_to_detail_token_str(job_execution_status): status_detail_str}, "clientToken": client_id}
     job_update_json_str: str = ujson.dumps(job_update_json)

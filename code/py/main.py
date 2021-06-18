@@ -13,7 +13,7 @@ def main() -> None:
 
     main_loop = uasyncio.get_event_loop()
 
-    aws_client_manager.init("blakes_micropython_esp32_2", "a2thrw602myi6-ats.iot.us-east-1.amazonaws.com", "aws_config/cert.pem", "aws_config/private.key")
+    aws_client_manager.init("thing_name", "host_name", "aws_config/cert_file_path", "aws_config/private_key_file_path")
     uasyncio.create_task(__print_heap_usage_task())
 
     try:

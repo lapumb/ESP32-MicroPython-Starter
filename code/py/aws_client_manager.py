@@ -10,7 +10,7 @@ _dummy_delta_int: int = 0
 
 def __get_serial_number() -> str:
     # for now, just report the client ID as the serial number
-    return _aws_client.get_client_id()
+    return _aws_client.get_thing_name()
 
 def __get_dummy_delta_int() -> int:
     return _dummy_delta_int
@@ -37,7 +37,7 @@ _shadow_properties = {
 
 def __get_telemetry_prefix_str() -> str:
     assert _aws_client is not None and _aws_client != None
-    return "device/micropython_example/{}".format(_aws_client.get_client_id())
+    return "device/micropython_example/{}".format(_aws_client.get_thing_name())
 
 def __on_shadow_delta(delta_dict: dict) -> None:
     # walk through delta dictionary
@@ -76,15 +76,15 @@ async def __dummy_telemetry_publish_task() -> None:
         _aws_client.publish(topic_name, json_payload_str)
         await uasyncio.sleep_ms(60_000)
 
-def init(client_id: str, host_name: str, cert_file_path: str, key_file_path: str, shadow_update_frequency: int=120000) -> None:
-    assert client_id is not None and client_id != None
+def init(thing_name: str, host_name: str, cert_file_path: str, private_key_file_path: str, shadow_update_frequency: int=120000) -> None:
+    assert thing_name is not None and thing_name != None
     assert host_name is not None and host_name != None
     assert cert_file_path is not None and cert_file_path != None
-    assert key_file_path is not None and key_file_path != None
+    assert private_key_file_path is not None and private_key_file_path != None
 
     try:
         global _aws_client
-        _aws_client = AWSIoTClient(client_id, host_name, cert_file_path, key_file_path)
+        _aws_client = AWSIoTClient(thing_name, host_name, cert_file_path, private_key_file_path)
     except Exception as error:
         print("Failed to initialize AWS IoT Client: " + str(error))
         raise

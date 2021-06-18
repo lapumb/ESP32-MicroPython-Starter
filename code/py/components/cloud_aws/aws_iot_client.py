@@ -15,8 +15,8 @@ class AWSIoTClient:
     _MQTT_PORT: int = 8883
 
     _cert: str = ""
-    _key: str = ""
-    _client_id: str = ""
+    _private_key: str = ""
+    _thing_name: str = ""
 
     _mqtt_client: MQTTClient = None
     _mqtt_client_is_connected: bool = False
@@ -77,7 +77,7 @@ class AWSIoTClient:
     def __connect_mqtt_client(self, client_id: str, host_name: str) -> None:
         print("Connecting to AWS MQTT client..")
         try:
-            self._mqtt_client = MQTTClient(client_id=client_id, server=host_name, port=self._MQTT_PORT, keepalive=10000, ssl=True, ssl_params={"cert":self._cert, "key":self._key, "server_side":False})
+            self._mqtt_client = MQTTClient(client_id=client_id, server=host_name, port=self._MQTT_PORT, keepalive=10000, ssl=True, ssl_params={"cert":self._cert, "key":self._private_key, "server_side":False})
             self.__setup_subscriptions(self._mqtt_client)
             self._mqtt_client.connect()
             print("MQTT client connected successfully!")
@@ -85,13 +85,13 @@ class AWSIoTClient:
             print("An error occured when connecting to AWS MQTT client: " + str(error))
             raise
 
-    def __init__(self, client_id: str, host_name: str, cert_file_path: str, key_file_path: str, telemetry_queue_size: int = 15) -> None:
+    def __init__(self, thing_name: str, host_name: str, cert_file_path: str, private_key_file_path: str, telemetry_queue_size: int = 15) -> None:
         """Connect to AWS and subscribe to AWS Jobs and Shadow Document topics.
 
         Parameters
         ----------
-        `client_id` : str
-            The device's client ID, typically the device serial number
+        `thing_name` : str
+            The device's AWS Thing name, typically the device serial number
 
             Note: this CANNOT be None
 
@@ -101,12 +101,12 @@ class AWSIoTClient:
             Note: this CANNOT be None
 
         `cert_file_path` : str
-            The local, relative path to the AWS certificate file (i.e., aws_config/cert.pem)
+            The relative path to the AWS certificate file (i.e., aws_config/cert.pem)
 
             Note: this CANNOT be None
 
-        `key_file_path` : str
-            The local, relative path to the private-key file (i.e., aws_config/private.key)
+        `private_key_file_path` : str
+            The relative path to the private-key file (i.e., aws_config/private.key)
 
             Note: this CANNOT be None
 
@@ -128,10 +128,10 @@ class AWSIoTClient:
 
         3. An MQTT connection cannot be established
         """
-        assert client_id is not None and client_id != None
+        assert thing_name is not None and thing_name != None
         assert host_name is not None and host_name != None
         assert cert_file_path is not None and cert_file_path != None
-        assert key_file_path is not None and key_file_path != None
+        assert private_key_file_path is not None and private_key_file_path != None
         assert telemetry_queue_size is not None and telemetry_queue_size >= 2
 
         from ..wifi import wifi
@@ -140,10 +140,10 @@ class AWSIoTClient:
             return
 
         print("---------------------------------------")
-        print("client_id: " + client_id)
+        print("thing_name: " + thing_name)
         print("host_name: " + host_name)
         print("cert_file_path: " + cert_file_path)
-        print("key_file_path: " + key_file_path)
+        print("private_key_file_path: " + private_key_file_path)
         print("telemetry_queue_size: " + str(telemetry_queue_size))
         print("---------------------------------------")
 
@@ -153,15 +153,15 @@ class AWSIoTClient:
             with open(cert_file_path, "r") as cert_file:
                 self._cert = cert_file.read()
 
-            with open(key_file_path, "r") as key_file:
-                self._key = key_file.read()
+            with open(private_key_file_path, "r") as private_key_file:
+                self._private_key = private_key_file.read()
         except Exception as error:
             print("An error occured when reading AWS credentials: " + str(error))
             raise
 
-        self.__connect_mqtt_client(client_id, host_name)
+        self.__connect_mqtt_client(thing_name, host_name)
 
-        self._client_id = client_id
+        self._thing_name = thing_name
         self._mqtt_client_is_connected = True
 
         # initialize aws_shadow module and subscribe to topics
@@ -178,14 +178,9 @@ class AWSIoTClient:
         self._mqtt_client_is_connected = False
         self._mqtt_client.disconnect()
 
-    def get_client_id(self) -> str:
-        """Get the client ID of the MQTT client
-
-        Returns
-        -------
-        str : the client ID of the MQTT client
-        """
-        return self._client_id
+    def get_thing_name(self) -> str:
+        """Get the devices AWS Thing name"""
+        return self._thing_name
 
     def subscribe(self, topic_name: str, callback: function) -> None:
         """Subscribe to an MQTT topic.

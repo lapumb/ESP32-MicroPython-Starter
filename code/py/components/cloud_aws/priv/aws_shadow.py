@@ -36,7 +36,7 @@ def subscribe_to_shadow_topics() -> None:
     assert _aws_client is not None and _aws_client != None
     assert _initialized
 
-    client_id: str = _aws_client.get_client_id()
+    client_id: str = _aws_client.get_thing_name()
     _aws_client.subscribe("{}/update/accepted".format(__get_shadow_prefix_str(client_id)), __shadow_update_accepted)
     _aws_client.subscribe("{}/update/rejected".format(__get_shadow_prefix_str(client_id)), __shadow_update_rejected)
     _aws_client.subscribe("{}/update/delta".format(__get_shadow_prefix_str(client_id)), __shadow_update_delta)
@@ -48,7 +48,7 @@ def update(properties: dict) -> None:
 
     import ujson
 
-    client_id: str = _aws_client.get_client_id()
+    client_id: str = _aws_client.get_thing_name()
     shadow_update_topic = "{}/update".format(__get_shadow_prefix_str(client_id))
 
     # build JSON shadow state doc

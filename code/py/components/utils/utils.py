@@ -1,9 +1,11 @@
 def print_heap_usage() -> None:
+    # collect any outstanding garbage prior to printing heap usage
     import gc
     gc.collect()
     print("Free Heap: {}, Allocated Heap: {}".format(gc.mem_free(), gc.mem_alloc()))
 
 def print_heap_usage_raw() -> None:
+    # collect any outstanding garbage prior to printing heap usage
     import micropython, gc
     gc.collect()
     micropython.mem_info()

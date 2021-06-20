@@ -1,16 +1,14 @@
-from components.cloud_aws.aws_iot_client import AWSIoTClient
 import components.utils.utils as utils
 
 _SHADOW_PROPERTY_TUPLE_GETTER_INDEX: int = 0
 _SHADOW_PROPERTY_TUPLE_DELTA_CB_INDEX: int = 1
 
-_aws_client: AWSIoTClient = None
-
 _dummy_delta_int: int = 0
 
 def __get_serial_number() -> str:
     # for now, just report the client ID as the serial number
-    return _aws_client.get_thing_name()
+    from components.cloud_aws import aws_iot_client
+    return aws_iot_client.get_thing_name()
 
 def __get_dummy_delta_int() -> int:
     return _dummy_delta_int
@@ -36,8 +34,8 @@ _shadow_properties = {
 }
 
 def __get_telemetry_prefix_str() -> str:
-    assert _aws_client is not None and _aws_client != None
-    return "device/micropython_example/{}".format(_aws_client.get_thing_name())
+    from components.cloud_aws import aws_iot_client
+    return "device/micropython_example/{}".format(aws_iot_client.get_thing_name())
 
 def __on_shadow_delta(delta_dict: dict) -> None:
     # walk through delta dictionary
@@ -64,7 +62,9 @@ async def __shadow_update_task(frequency_ms: int) -> None:
         await uasyncio.sleep_ms(frequency_ms)
 
 async def __dummy_telemetry_publish_task() -> None:
+    from components.cloud_aws import aws_iot_client
     import uasyncio, ujson
+
     publish_count: int = 0
     topic_name: str = "{}/client/event/dummy".format(__get_telemetry_prefix_str())
     json_payload: dict = {"event_name": "client_dummy_event"}
@@ -73,7 +73,7 @@ async def __dummy_telemetry_publish_task() -> None:
         publish_count += 1
         json_payload["publish_count"] = publish_count
         json_payload_str: str = ujson.dumps(json_payload)
-        _aws_client.publish(topic_name, json_payload_str)
+        aws_iot_client.publish(topic_name, json_payload_str)
         await uasyncio.sleep_ms(60_000)
 
 def init(thing_name: str, host_name: str, cert_file_path: str, private_key_file_path: str, shadow_update_frequency: int=120000) -> None:
@@ -82,25 +82,28 @@ def init(thing_name: str, host_name: str, cert_file_path: str, private_key_file_
     assert cert_file_path is not None and cert_file_path != None
     assert private_key_file_path is not None and private_key_file_path != None
 
+    from components.cloud_aws import aws_iot_client
+
     try:
-        global _aws_client
-        _aws_client = AWSIoTClient(thing_name, host_name, cert_file_path, private_key_file_path)
+        aws_iot_client.init(thing_name, host_name, cert_file_path, private_key_file_path)
     except Exception as error:
         print("Failed to initialize AWS IoT Client: " + str(error))
         raise
 
-    _aws_client.set_shadow_delta_callback(__on_shadow_delta)
+    aws_iot_client.set_shadow_delta_callback(__on_shadow_delta)
 
     dummy_topic_name: str = "{}/server/event/dummy".format(__get_telemetry_prefix_str())
-    _aws_client.subscribe(dummy_topic_name, __on_dummy_event)
-    _aws_client.aws_jobs_register_operation("dummy", __on_dummy_job)
+    aws_iot_client.subscribe(dummy_topic_name, __on_dummy_event)
+    aws_iot_client.aws_jobs_register_operation("dummy", __on_dummy_job)
 
     import uasyncio
-    uasyncio.create_task(_aws_client.aws_task())
+    uasyncio.create_task(aws_iot_client.aws_task())
     uasyncio.create_task(__shadow_update_task(shadow_update_frequency))
     uasyncio.create_task(__dummy_telemetry_publish_task())
 
 def shadow_update() -> None:
+    from components.cloud_aws import aws_iot_client
+    
     shadow_property_dict = dict()
     for property, tuple_callbacks in _shadow_properties.items():
         property_getter = tuple_callbacks[_SHADOW_PROPERTY_TUPLE_GETTER_INDEX]
@@ -108,4 +111,4 @@ def shadow_update() -> None:
             property_val = property_getter()
             shadow_property_dict[str(property)] = property_val
 
-    _aws_client.update_shadow(shadow_property_dict)
+    aws_iot_client.update_shadow(shadow_property_dict)

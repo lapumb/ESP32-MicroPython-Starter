@@ -142,7 +142,7 @@ Hello, world!
 
 This repository houses an example project that shows how to use the `cloud_aws` component to:
 
-- Connect to AWS
+- Connect to AWS over TLS
 - Update the device shadow document
 - Receive `desired` shadow properties
 - Subscribe to MQTT topics
@@ -184,7 +184,7 @@ This repository houses an example project that shows how to use the `cloud_aws` 
 
 >Note: the `upload_aws_config.sh` script assumes the certificate and private key are in the folder `$REPO_ROOT/aws_config`
 
-4. Open `code/py/boot.py` and fill in "YOUR_SSID" and "YOUR_PASSWORD" in `__start_wifi` so WiFi can be connected when the board boots
+4. Open `code/py/boot.py` and fill in `"YOUR_SSID"` and `"YOUR_PASSWORD"` in `__start_wifi` so WiFi can be connected when the board boots
 
 5. Open `code/py/main.py` and fill your info in for the call to `aws_client_manager.init`, where:
     - `"thing_name"` is your devices AWS Thing name

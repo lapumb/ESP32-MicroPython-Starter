@@ -1,4 +1,3 @@
-from ..aws_iot_client import *
 from ..aws_job_execution_status import *
 
 # a dictionary of operation subscriptions: <"operation", on_operation_cb>,
@@ -12,9 +11,6 @@ _job_status_defs: dict = {
     AWS_JOB_EXECUTION_SUCCEEDED: ("successDetail", "SUCCEEDED"),
     AWS_JOB_EXECUTION_REJECTED: ("rejectedDetail", "REJECTED")
 }
-
-_initialized: bool = False
-_aws_client: AWSIoTClient = None
 
 def __get_jobs_prefix_str(client_id: str) -> str:
     return "$aws/things/{}/jobs".format(client_id)
@@ -82,44 +78,29 @@ def __on_jobs_get_next_rejected(topic_name: str, json_payload: dict) -> None:
     del topic_name
     print("on_jobs_next_get_rejected: {}".format(str(json_payload)))
 
-def init(aws_client: AWSIoTClient) -> None:
-    assert aws_client is not None and aws_client != None
-
-    global _aws_client, _initialized
-    _aws_client = aws_client
-    _initialized = True
-
 def subscribe_to_jobs_topics() -> None:
-    assert _aws_client is not None and _aws_client != None
-    assert _initialized
+    from ..aws_iot_client import subscribe as aws_subscribe, get_thing_name as aws_get_thing_name
 
-    client_id: str = _aws_client.get_thing_name()
-    _aws_client.subscribe("{}/notify".format(__get_jobs_prefix_str(client_id)), __on_jobs_notify)
-    _aws_client.subscribe("{}/$next/get/accepted".format(__get_jobs_prefix_str(client_id)), __on_jobs_get_next_accepted)
-    _aws_client.subscribe("{}/$next/get/rejected".format(__get_jobs_prefix_str(client_id)), __on_jobs_get_next_rejected)
+    client_id: str = aws_get_thing_name()
+    aws_subscribe("{}/notify".format(__get_jobs_prefix_str(client_id)), __on_jobs_notify)
+    aws_subscribe("{}/$next/get/accepted".format(__get_jobs_prefix_str(client_id)), __on_jobs_get_next_accepted)
+    aws_subscribe("{}/$next/get/rejected".format(__get_jobs_prefix_str(client_id)), __on_jobs_get_next_rejected)
 
 def get_next_job() -> None:
-    assert _aws_client is not None and _aws_client != None
-    assert _initialized
-    _aws_client.publish("{}/$next/get".format(__get_jobs_prefix_str(_aws_client.get_thing_name())), "{}")
+    from ..aws_iot_client import get_thing_name as aws_get_thing_name, publish as aws_publish
+    aws_publish("{}/$next/get".format(__get_jobs_prefix_str(aws_get_thing_name())), "{}")
 
 def publish_update(job_id: str, job_execution_status: int, status_detail_str: str) -> None:
-    assert _aws_client is not None and _aws_client != None
-    assert job_id is not None and job_id != None
-    assert _initialized
-
+    from ..aws_iot_client import get_thing_name as aws_get_thing_name, publish as aws_publish
     import ujson
-    client_id: str = _aws_client.get_thing_name()
+    
+    client_id: str = aws_get_thing_name()
     job_topic: str = "$aws/things/{0}/jobs/{1}/update".format(client_id, job_id)
     job_update_json = {"status": __aws_job_execution_to_str(job_execution_status), "statusDetails": {__aws_job_execution_status_to_detail_token_str(job_execution_status): status_detail_str}, "clientToken": client_id}
     job_update_json_str: str = ujson.dumps(job_update_json)
-    _aws_client.publish(job_topic, job_update_json_str)
+    aws_publish(job_topic, job_update_json_str)
 
 def register_operation(operation: str, on_operation_cb: function) -> None:
-    assert operation is not None and operation != None
-    assert on_operation_cb is not None and on_operation_cb != None
-    assert _initialized
-
     if operation in _operation_subscriptions:
         print("Operation {} is already registered!".format(operation))
         return

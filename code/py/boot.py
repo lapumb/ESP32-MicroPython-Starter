@@ -1,13 +1,20 @@
-# This file is executed on every boot (including wake-boot from deepsleep)
+# This file is executed on every boot (including wake-boot from deep sleep)
 
-def boot():
-    import esp, wifi
-    from led import Led
-    print('Running boot.py..')
-    esp.osdebug(5)
-    white_led = Led(25, 0)
-    white_led = white_led.toggle(1500)
-    # Pass your wifi SSID and passphrase to connect to wifi
-    # wifi.connect('ssid', 'passphrase')
+def __start_wifi() -> None:
+    import components.wifi.wifi as wifi
+    wifi.connect("YOUR_SSID", "YOUR_PASSWORD")
 
-boot()
+def boot() -> None:
+    import components.utils.utils as utils
+    utils.print_heap_usage_raw()
+    __start_wifi()
+
+if __name__ == "__main__":
+    print("Running boot.py..")
+
+    try:
+        boot()
+    except KeyboardInterrupt:
+        print("Killing boot.py..")
+        import sys
+        sys.exit(0)

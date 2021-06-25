@@ -2,6 +2,6 @@
 
 set -e
 
-echo "Executing 'screen' command to connect to the ESP32 on port $ESPPORT"
+echo "Executing 'picocom' command to connect to the ESP32 on port $ESPPORT"
 
-screen "$ESPPORT" 115200
+picocom $ESPPORT -b115200
